@@ -1,0 +1,127 @@
+close all;
+clear;
+%% Insert true system
+m = 20;
+beta = 0.1;
+k = 5;
+A                       = [0 1;-k/m -beta/m];               
+B                       = [0; 1/m];
+%% Define filters
+lambda_1                = .5; 
+lambda_0                = .5;
+DEN                     = [1 lambda_1 lambda_0];
+[  ~,  ~,C_f_1,D_f_1]   = tf2ss([0 0 1],DEN);     
+[  ~,  ~,C_f_2,D_f_2]   = tf2ss([0 1 0],DEN);                            
+[A_f,B_f,C_f_3,D_f_3]   = tf2ss([1 0 0],DEN);                     
+% A_f and B_f is only needed once as it is the same all over. Hence tildes
+
+ 
+%% Simulation MATLAB
+h       = 0.01;  % sample time (s)
+N       = 50000; % number of samples
+
+t       = 0:h:h*(N-1);
+
+% Define input as a function of t
+u       = sin(t);
+beta_ls    = 1;    % Forgetting factor
+
+% Memory allocation
+x       = zeros(2, N);
+x_z     = zeros(2, 1);
+x_phi   = zeros(2, 1);
+theta   = zeros(3, N);
+U       = zeros(N-1,1);
+m_data  = zeros(1, N);
+P       = zeros(3, N)
+
+% Initial estimates
+theta(:,1) = [5;0.9;2];
+Q_0 = eye(3);
+P(:,1) = Q_0\eye(3); %P_0
+
+%% Main loop. Simulate using forward Euler (x[k+1] = x[k] + h*x_dot)
+for n = 1:N-1
+ 
+    % Simulate true system
+    if t(n) > 20
+        % m = 20*(2 - exp(-0.01*(t(n)-20)));    % Comment in for e)
+        m_data(:,n) = m;
+    else
+        m = 20;
+        m_data(:,n) = m;
+    end
+    
+    % Update A and B? 
+    % theta_n = theta(:,n);
+    % A              = A_func(theta_n);               
+    % B              = B_func(theta_n);
+    A               = [0 1;-k/m -beta/m];               
+    B               = [0; 1/m];
+    
+    x_dot           = A*x(:, n) + B*u(n);
+    x(:, n+1)       = x(:, n) + h*x_dot;
+    y               = x(1, n);
+    
+    % Generate z and phi by filtering known signals
+    x_z_n           = x_z + (A_f*x_z + B_f*u(n))*h;        % u is unfiltered 'z'
+    z               = C_f_1*x_z;                           %  1/Lambda * u
+    
+    x_phi_n         = x_phi + (A_f*x_phi + B_f*y)*h;
+                    %      s^2/Lambda * y           s/Lambda * y               1/Lambda * y
+    phi             = [(C_f_3*x_phi + D_f_3*y); (C_f_2*x_phi + D_f_2*y); (C_f_1*x_phi + D_f_1*y)];
+    
+    % Calculate estimation error
+    epsilon         = z - theta(:,n)'*phi;                    
+    
+    % Update law
+    theta_dot       = P * epsilon * phi;                    
+    P_dot           = beta_ls * P - P * (phi * phi') * P;
+    
+    theta(:, n+1)   = theta(:, n) + theta_dot*h;
+    P               = P + P_dot * h;
+    % Set values for next iteration
+    x_phi           = x_phi_n;
+    x_z             = x_z_n;
+    
+end
+
+% Plots
+figure
+subplot(3,1,1)
+plot(t, theta(1,:)); hold on
+plot(t, m_data); 
+hold off
+ylabel('m')
+legend('estimate','true value')
+grid
+subplot(3,1,2)
+plot(t, theta(2,:)); hold on
+plot([t(1), t(end)],[beta, beta]); 
+hold off
+ylabel('\beta')
+legend('estimate','true value')
+grid
+subplot(3,1,3)
+plot(t, theta(3,:)); hold on
+plot([t(1), t(end)],[k, k]); 
+hold off
+ylabel('k')
+grid
+legend('estimate','true value')
+title('Parameter estimates')
+xlabel('t [s]')
+
+function A_t = A_func(theta)
+m = theta(1);
+beta = theta(2);
+k = theta(3);
+
+A_t = [0 1;-k/(1/m) -beta/m];
+end
+
+function B_t = B_func(theta)
+m = theta(1);
+
+B_t = [0; 1/m];
+end
