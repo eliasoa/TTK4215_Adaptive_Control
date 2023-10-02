@@ -17,7 +17,7 @@ DEN                     = [1 lambda_1 lambda_0];
 
 %% Simulation MATLAB
 h           = 0.01;  % sample time (s)
-N           = 2000; % number of samples
+N           = 1200; % number of samples
 
 t           = 0:h:h*(N-1);
 

@@ -71,7 +71,7 @@ for n = 1:N-1
     phi_1 = y_1-y_2;
    
     
-    % Calculate estimation error NORMALISERING ØDELEGGER?????
+    % Calculate estimation error
     % n_s_1 = phi_1'*phi_1;
     % n_s_2 = phi_2'*phi_2;
 

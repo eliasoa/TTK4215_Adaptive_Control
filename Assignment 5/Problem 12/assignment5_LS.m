@@ -7,8 +7,8 @@ k = 5;
 A                       = [0 1;-k/m -beta/m];               
 B                       = [0; 1/m];
 %% Define filters
-lambda_1                = .5; 
-lambda_0                = .5;
+lambda_1                = 1; 
+lambda_0                = 6;
 DEN                     = [1 lambda_1 lambda_0];
 [  ~,  ~,C_f_1,D_f_1]   = tf2ss([0 0 1],DEN);     
 [  ~,  ~,C_f_2,D_f_2]   = tf2ss([0 1 0],DEN);                            
@@ -24,7 +24,7 @@ t       = 0:h:h*(N-1);
 
 % Define input as a function of t
 u       = sin(t);
-beta_ls = .05;    % Forgetting factor
+beta_ls = 1;    % Forgetting factor
 
 % Memory allocation
 x       = zeros(2, N);
@@ -36,8 +36,8 @@ m_data  = zeros(1, N);
 P       = zeros(3,3, N);
 
 % Initial estimates
-theta(:,1) = [5;0.9;2];
-Q_0 = eye(3);
+theta(:,1) = [0;0;0];
+Q_0 = diag([5 500 50]);
 P(:,:,1) = Q_0\eye(3); %P_0
 
 %% Main loop. Simulate using forward Euler (x[k+1] = x[k] + h*x_dot)
